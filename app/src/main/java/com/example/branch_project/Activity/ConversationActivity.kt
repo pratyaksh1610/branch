@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.branch_project.Adapter.SeparateThreadAdapter
 import com.example.branch_project.Api.RetrofitObject
+import com.example.branch_project.Api.RetrofitObject.retrofit
 import com.example.branch_project.Model.AllMessages
 import com.example.branch_project.Model.SendMessage
 import com.example.branch_project.SharedPref.SharedPref
@@ -28,7 +29,7 @@ class ConversationActivity : AppCompatActivity() {
         setRecyclerView()
         allMessagesRelatedToThreadId()
         binding.btnSendMessage.setOnClickListener {
-            sendMessage()
+            sendSingleMessage()
         }
     }
 
@@ -41,36 +42,36 @@ class ConversationActivity : AppCompatActivity() {
         val authToken = SharedPref(this).getAuthToken("AuthToken")
         val threadId = SharedPref(this).getThreadId("ThreadId")
 
-        val retrofit =
-            RetrofitObject.apiInterface.getAllMessages(authToken)
-
-        retrofit.enqueue(object : Callback<List<AllMessages>?> {
+        val retro = RetrofitObject.apiInterface.getAllMessages(authToken)
+        retro.enqueue(object : Callback<List<AllMessages>?> {
             override fun onResponse(
                 call: Call<List<AllMessages>?>,
                 response: Response<List<AllMessages>?>
             ) {
-                val result = response.body()!!
+                if (response.isSuccessful && response.body() != null) {
+                    val result = response.body()!!
 
-                for (i in result) {
-                    if (i.thread_id == threadId.toInt()) {
-                        listMessagesEachThread.add(
-                            AllMessages(
-                                i.id,
-                                i.thread_id,
-                                i.body,
-                                i.agent_id.toString(),
-                                i.body,
-                                i.timestamp
+                    for (i in result) {
+                        if (i.thread_id == threadId.toInt()) {
+                            listMessagesEachThread.add(
+                                AllMessages(
+                                    i.id,
+                                    i.thread_id,
+                                    i.body,
+                                    i.agent_id.toString(),
+                                    i.body,
+                                    i.timestamp
+                                )
                             )
-                        )
+                        }
                     }
+                    listMessagesEachThread.sortByDescending { it.timestamp }
+                    listMessagesEachThread.reverse()
+                    val adapter =
+                        SeparateThreadAdapter(this@ConversationActivity, listMessagesEachThread)
+                    binding.rvEachMessage.adapter = adapter
+                    binding.rvEachMessage.scrollToPosition(listMessagesEachThread.size - 1)
                 }
-                listMessagesEachThread.sortByDescending { it.timestamp }
-                listMessagesEachThread.reverse()
-                val adapter =
-                    SeparateThreadAdapter(this@ConversationActivity, listMessagesEachThread)
-                binding.rvEachMessage.adapter = adapter
-                binding.rvEachMessage.scrollToPosition(listMessagesEachThread.size - 1)
             }
 
             override fun onFailure(call: Call<List<AllMessages>?>, t: Throwable) {
@@ -83,7 +84,7 @@ class ConversationActivity : AppCompatActivity() {
         })
     }
 
-    private fun sendMessage() {
+    private fun sendSingleMessage() {
         val authToken = SharedPref(this).getAuthToken("AuthToken")
         val threadId = SharedPref(this).getThreadId("ThreadId")
 
@@ -104,7 +105,10 @@ class ConversationActivity : AppCompatActivity() {
                     if (response.isSuccessful && response.body() != null) {
                         val result = response.body()!!
                         val adapter =
-                            SeparateThreadAdapter(this@ConversationActivity, listMessagesEachThread)
+                            SeparateThreadAdapter(
+                                this@ConversationActivity,
+                                listMessagesEachThread
+                            )
                         binding.rvEachMessage.adapter = adapter
                         adapter.updateList(
                             AllMessages(

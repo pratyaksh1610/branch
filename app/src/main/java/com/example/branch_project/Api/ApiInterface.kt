@@ -3,7 +3,6 @@ package com.example.branchdemo.Api
 import com.example.branch_project.Model.AllMessages
 import com.example.branch_project.Model.AuthToken
 import com.example.branch_project.Model.LoginCredentials
-
 import com.example.branch_project.Model.SendMessage
 import retrofit2.Call
 import retrofit2.http.Body

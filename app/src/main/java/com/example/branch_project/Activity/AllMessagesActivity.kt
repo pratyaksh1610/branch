@@ -3,24 +3,23 @@ package com.example.branch_project.Activity
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.branch_project.Adapter.AllMessagesAdapter
 import com.example.branch_project.Adapter.OnClick
-import com.example.branch_project.Api.RetrofitObject
 import com.example.branch_project.Model.AllMessages
 import com.example.branch_project.SharedPref.SharedPref
+import com.example.branch_project.ViewModel.MessageViewModel
 import com.example.branch_project.databinding.ActivityAllMessagesBinding
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 
 class AllMessagesActivity : AppCompatActivity(), OnClick {
 
     private lateinit var binding: ActivityAllMessagesBinding
     private var listMessages = mutableListOf<AllMessages>()
+    private val viewModel: MessageViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,46 +36,34 @@ class AllMessagesActivity : AppCompatActivity(), OnClick {
     }
 
     private fun getAllMessages() {
-        val authToken = SharedPref(this).getAuthToken("AuthToken")
-        val retrofit = RetrofitObject.apiInterface.getAllMessages(authToken)
+        val authToken = SharedPref(this@AllMessagesActivity).getAuthToken("AuthToken")
 
-        retrofit.enqueue(object : Callback<List<AllMessages>?> {
-            override fun onResponse(
-                call: Call<List<AllMessages>?>,
-                response: Response<List<AllMessages>?>
-            ) {
-                if (response.isSuccessful && response.body() != null) {
-                    val listAllMessages = response.body()!!
+        viewModel.getAllMessages(authToken)
 
-                    // if it works, don't touch it
-                    listMessages = listAllMessages.toMutableList()
-                    listMessages.sortByDescending { it.timestamp }
+        viewModel.getListOfAllMessages().observe(
+            this,
+            Observer { itt ->
 
-                    val groupItems = listMessages.groupBy { it.user_id }
+                listMessages = itt?.toMutableList()!!
+                listMessages.sortByDescending { it.timestamp }
 
-                    // Find the item with the latest timestamp in each group
-                    val distinctItemsWithLatestTimestamp = groupItems.values.mapNotNull { group ->
-                        group.maxByOrNull { it.timestamp }
-                    }
-                    val adapter =
-                        AllMessagesAdapter(
-                            this@AllMessagesActivity,
-                            distinctItemsWithLatestTimestamp,
-                            this@AllMessagesActivity
-                        )
-                    binding.rvAllMessages.adapter = adapter
-                    binding.rvAllMessages.scrollToPosition(0)
+                val groupItems = listMessages.groupBy { it.user_id }
+
+                // Find the item with the latest timestamp in each group
+                val distinctItemsWithLatestTimestamp = groupItems.values.mapNotNull { group ->
+                    group.maxByOrNull { it.timestamp }
                 }
-            }
 
-            override fun onFailure(call: Call<List<AllMessages>?>, t: Throwable) {
-                Toast.makeText(
-                    this@AllMessagesActivity,
-                    "Error",
-                    Toast.LENGTH_LONG
-                ).show()
+                val adapter =
+                    AllMessagesAdapter(
+                        this@AllMessagesActivity,
+                        distinctItemsWithLatestTimestamp,
+                        this@AllMessagesActivity
+                    )
+                binding.rvAllMessages.adapter = adapter
+                binding.rvAllMessages.scrollToPosition(0)
             }
-        })
+        )
     }
 
     override fun onClickMessage(thread_id: String, body: String) {
@@ -112,7 +99,6 @@ class AllMessagesActivity : AppCompatActivity(), OnClick {
 
     override fun onRestart() {
         super.onRestart()
-        finish()
         startActivity(intent)
     }
 
@@ -120,6 +106,8 @@ class AllMessagesActivity : AppCompatActivity(), OnClick {
         if (SharedPref(this@AllMessagesActivity).getIsLoggedInKey("LoggedIn") != "true") {
             openLogoutDialog()
         } else {
+            finishAffinity()
+            startActivity(Intent(this@AllMessagesActivity, MainActivity::class.java))
             super.onBackPressed()
         }
     }
