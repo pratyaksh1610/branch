@@ -99,11 +99,13 @@ class AllMessagesActivity : AppCompatActivity(), OnClick {
             .setTitle("Do you want to log out ?")
             .setPositiveButton("Yes") { _, _ ->
                 logOutAndUpdateSharedPref()
-                finishAndRemoveTask()
+                finishAffinity()
+                startActivity(Intent(this@AllMessagesActivity, MainActivity::class.java))
             }
             .setNegativeButton("No") { _, _ ->
                 SharedPref(this@AllMessagesActivity).setIsLoggedInKey("LoggedIn", "true")
                 finishAffinity()
+                startActivity(Intent(this@AllMessagesActivity, MainActivity::class.java))
             }
             .show()
     }
@@ -115,6 +117,10 @@ class AllMessagesActivity : AppCompatActivity(), OnClick {
     }
 
     override fun onBackPressed() {
-        openLogoutDialog()
+        if (SharedPref(this@AllMessagesActivity).getIsLoggedInKey("LoggedIn") != "true") {
+            openLogoutDialog()
+        } else {
+            super.onBackPressed()
+        }
     }
 }

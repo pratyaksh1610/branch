@@ -2,6 +2,7 @@ package com.example.branch_project.Activity
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.branch_project.Api.RetrofitObject
@@ -23,9 +24,16 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val isLoggedIn = SharedPref(this).getIsLoggedInKey("LoggedIn")
-        if (isLoggedIn == "true") {
+        updateLoginScreen()
+
+        binding.btnViewAllMessages.setOnClickListener {
             goToAllMessagesActivity()
+        }
+
+        binding.btnLogout.setOnClickListener {
+            logOutAndUpdateSharedPref()
+            binding.llLogIn.visibility = View.VISIBLE
+            binding.llLogoutViewAll.visibility = View.GONE
         }
 
         binding.etUsername.requestFocus()
@@ -35,6 +43,22 @@ class MainActivity : AppCompatActivity() {
         binding.btnSubmit.setOnClickListener {
             loginUsingUsernamePassword()
         }
+    }
+
+    private fun updateLoginScreen() {
+        val isLoggedIn = SharedPref(this).getIsLoggedInKey("LoggedIn")
+        if (isLoggedIn == "true") {
+            binding.llLogIn.visibility = View.GONE
+            binding.llLogoutViewAll.visibility = View.VISIBLE
+        } else {
+            binding.llLogIn.visibility = View.VISIBLE
+            binding.llLogoutViewAll.visibility = View.GONE
+        }
+    }
+
+    private fun logOutAndUpdateSharedPref() {
+        SharedPref(this@MainActivity).setAuthToken("AuthToken", "")
+        SharedPref(this@MainActivity).setIsLoggedInKey("LoggedIn", "")
     }
 
     private fun saveDataInSharedPreferences() {
